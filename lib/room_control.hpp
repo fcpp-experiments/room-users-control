@@ -8,6 +8,7 @@
 #ifndef FCPP_ROOM_CONTROL_H_
 #define FCPP_ROOM_CONTROL_H_
 
+#include <cassert>
 #include <array>
 #include <functional>
 
@@ -64,6 +65,46 @@ namespace std {
 namespace fcpp {
 
 
+enum class automa {
+    sitting, walking, reporting, following, gateway
+};
+
+std::string to_string(automa a) {
+    switch (a) {
+        case automa::sitting:
+            return "sitting";
+
+        case automa::walking:
+            return "walking";
+
+        case automa::reporting:
+            return "reporting";
+
+        case automa::following:
+            return "following";
+
+        case automa::gateway:
+            return "gateway";
+
+        default:
+            return "automa";
+    }
+}
+constexpr std::array<size_t, 5> automa_tall = {3, 5, 3, 5, 10};
+
+constexpr std::array<real_t, 5> automa_size = {1.5, 1.4, 1.2, 1.2, 2};
+
+constexpr std::array<shape, 5> automa_shape = {shape::cube, shape::sphere, shape::star, shape::star, shape::tetrahedron};
+
+constexpr std::array<std::array<size_t, 5>, 5> automa_transition{{
+    {95,  1,  4,  0,  0},
+    {10, 90,  0,  0,  0},
+    {30,  0, 60, 10,  0},
+    {20,  0,  0, 80,  0},
+    { 0,  0,  0,  0,100}
+}};
+
+
 //! @brief Namespace containing the libraries of coordination routines.
 namespace coordination {
 
@@ -77,6 +118,9 @@ namespace tags {
 
     //! @brief Map of satisfaction of nodes.
     struct satisfaction_map {};
+
+    //! @brief Automa state of the current node.
+    struct node_state {};
 
     //! @brief Size of the current node.
     struct node_size {};
@@ -100,11 +144,57 @@ MAIN() {
         s = -s;
         node.storage(node_color{}) = s * color(DEEP_SKY_BLUE) + (1-s) * color(SILVER);
     }
-    node.storage(node_size{}) = 1.5;
-    node.storage(node_shape{}) = shape::sphere;
-    rectangle_walk(CALL, make_vec(0,0,tall), make_vec(width,height,tall), 10, 1);
+    if (node.uid == 0) node.storage(node_color{}) = color(YELLOW);
+    automa a = old(CALL, node.uid == 0 ? automa::gateway : automa::sitting, [&](automa a){
+        int r = node.next_int(99);
+        for (size_t i=0; i<5; ++i) {
+            r -= automa_transition[(size_t)a][i];
+            if (r < 0) return (automa)i;
+        }
+        assert(false);
+        return automa::sitting;
+    });
+    node.storage(node_state{}) = a;
+    node.storage(node_size{}) = automa_size[(size_t)a];
+    node.storage(node_shape{}) = automa_shape[(size_t)a];
+    real_t t = automa_tall[(size_t)a];
+    switch (a) {
+        case automa::gateway:
+        {
+            node.position() = make_vec(width/2,height/2,t);
+            break;
+        }
+        case automa::sitting:
+        case automa::reporting:
+        {
+            vec<3> p = node.position();
+            p[2] = t;
+            node.position() = p;
+            node.velocity() = make_vec(0,0,0);
+            break;
+        }
+        case automa::walking:
+        {
+            rectangle_walk(CALL, make_vec(0,0,t), make_vec(width,height,t), 5, 1);
+            break;
+        }
+        case automa::following:
+        {
+            real_t h = node.storage(preference{})*height;
+            rectangle_walk(CALL, make_vec(0,h,t), make_vec(width,h,t), 5, 1);
+            break;
+        }
+    }
+    std::unordered_map<index_type, real_t> sm;
+    if (a == automa::reporting) {
+        index_type idx;
+        for (int i=0; i<2; ++i)
+            idx[i] = node.position()[i]/grain;
+        sm.emplace(idx, s);
+    }
+    node.storage(satisfaction_map{}) = sm;
 }
-FUN_EXPORT main_t = common::export_list<rectangle_walk_t<dim>>;
+FUN_EXPORT main_t = common::export_list<rectangle_walk_t<dim>, automa>;
 
 
 }

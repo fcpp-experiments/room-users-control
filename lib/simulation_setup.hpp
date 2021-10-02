@@ -37,6 +37,7 @@ DECLARE_OPTIONS(opt,
         preference,         real_t,
         satisfaction,       real_t,
         satisfaction_map,   std::unordered_map<index_type, real_t>,
+        node_state,         automa,
         node_color,         color,
         node_size,          double,
         node_shape,         shape
