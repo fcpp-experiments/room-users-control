@@ -28,7 +28,7 @@ using round_s = sequence::periodic<
     distribution::weibull_n<times_t, 10, 1, 10>,
     distribution::constant_n<times_t, end_time+2>
 >;
-using rectangle_d = distribution::rect_n<1, 0, 0, tall, width, height, tall>;
+using rectangle_d = distribution::rect_n<1, 0, 0, 0, width, height, 0>;
 //! @}
 
 //! @brief General options.
@@ -36,7 +36,9 @@ DECLARE_OPTIONS(opt,
     tuple_store<
         preference,         real_t,
         satisfaction,       real_t,
-        satisfaction_map,   std::unordered_map<index_type, real_t>,
+        satisfaction_map,   map_type,
+        map_size,           size_t,
+        local_satmap,       map_type,
         node_state,         automa,
         node_color,         color,
         node_size,          double,
@@ -56,7 +58,8 @@ DECLARE_OPTIONS(opt,
         preference,     distribution::interval_n<times_t, 0, 1>
     >,
     dimension<dim>,
-    connector<connect::fixed<comm,1,dim>>,
+    connector<connect::radial<80,connect::fixed<comm,1,dim>>>,
+    area<-77, -124, 100*width+77, 100*height+124, 100>,
     size_tag<node_size>,
     shape_tag<node_shape>,
     color_tag<node_color>
