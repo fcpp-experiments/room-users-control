@@ -154,10 +154,8 @@ MAIN() {
     node.storage(satisfaction{}) = s;
     if (s > 0)
         node.storage(node_color{}) = s * color(CRIMSON) + (1-s) * color(SILVER);
-    else {
-        s = -s;
-        node.storage(node_color{}) = s * color(DEEP_SKY_BLUE) + (1-s) * color(SILVER);
-    }
+    else
+        node.storage(node_color{}) = -s * color(DEEP_SKY_BLUE) + (1+s) * color(SILVER);
     if (node.uid == 0) node.storage(node_color{}) = color(YELLOW);
 
     // update and display automa state
@@ -248,6 +246,19 @@ MAIN() {
     });
     node.storage(satisfaction_map{}) = sm;
     node.storage(map_size{}) = sm.size();
+    if (a == automa::gateway) {
+        std::cerr << std::endl << "T = " << node.current_time() << std::endl;
+        index_type idx;
+        for (idx[1]=0; idx[1]<3; ++idx[1]) {
+            for (idx[0]=0; idx[0]<6; ++idx[0]) {
+                if (sm.count(idx))
+                    std::cerr << sm.at(idx) << "\t";
+                else
+                    std::cerr << "*\t";
+            }
+            std::cerr << std::endl;
+        }
+    }
 }
 FUN_EXPORT main_t = common::export_list<rectangle_walk_t<dim>, constant_t<vec<dim>>, timed_decay_t<map_type>, abf_hops_t, mp_collection_t<hops_t, map_type>, map_type, automa>;
 
